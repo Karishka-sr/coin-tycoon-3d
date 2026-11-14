@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.24' apply false
+    id 'com.android.application' version '8.5.2' apply false
+}
+
+allprojects {
+    group = 'com.tycoon'
+    version = '0.1.0'
+
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    }
+}
+
+ext {
+    gdxVersion = '1.12.1'
+    kotlinVersion = '1.9.24'
+    androidMinSdk = 21
+    androidTargetSdk = 34
+    androidCompileSdk = 34
+}
+
+subprojects {
+    if (project.name == 'android') return
+
+    apply plugin: 'java'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+}

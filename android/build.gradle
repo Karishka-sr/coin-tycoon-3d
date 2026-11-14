@@ -1,0 +1,89 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.tycoon.android'
+    compileSdk rootProject.ext.androidCompileSdk
+
+    defaultConfig {
+        applicationId 'com.tycoon.android'
+        minSdk rootProject.ext.androidMinSdk
+        targetSdk rootProject.ext.androidTargetSdk
+        versionCode 1
+        versionName rootProject.version
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src/main/java']
+            res.srcDirs = ['res']
+            assets.srcDirs = [rootProject.file('assets')]
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+}
+
+configurations {
+    natives
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64"
+}
+
+/** Extracts the .so files from the natives jars into libs/<abi> for the APK. */
+tasks.register('copyAndroidNatives') {
+    doFirst {
+        file('libs').mkdirs()
+    }
+    doLast {
+        def abiBySuffix = [
+            'natives-armeabi-v7a.jar': 'armeabi-v7a',
+            'natives-arm64-v8a.jar'  : 'arm64-v8a',
+            'natives-x86.jar'        : 'x86',
+            'natives-x86_64.jar'     : 'x86_64',
+        ]
+        configurations.natives.files.each { jar ->
+            def abi = abiBySuffix.find { suffix, _ -> jar.name.endsWith(suffix) }?.value
+            if (abi == null) return
+            def outputDir = file("libs/$abi")
+            outputDir.mkdirs()
+            copy {
+                from zipTree(jar)
+                into outputDir
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.named('preBuild') {
+        dependsOn 'copyAndroidNatives'
+    }
+}
