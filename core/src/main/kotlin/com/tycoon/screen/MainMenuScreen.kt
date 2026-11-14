@@ -16,6 +16,7 @@ class MainMenuScreen(game: TycoonGame) : MenuScreen(game) {
         table.add(Label(progressLine(), skin, "hint")).padBottom(20f).row()
 
         table.add(button("Играть") { game.swapLater { game.startGame() } }).height(56f).row()
+        table.add(button("Мир блоков") { game.swapLater { game.showVoxelWorld() } }).height(56f).row()
         table.add(button("Настройки") { game.swapLater { game.showSettings() } }).height(56f).row()
         table.add(button("Магазин") { game.swapLater { game.showShop() } }).height(56f).row()
         table.add(button("Выход") { game.swapLater { game.exit() } }).height(56f).row()

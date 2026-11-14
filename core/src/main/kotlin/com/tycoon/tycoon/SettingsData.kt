@@ -8,4 +8,5 @@ class SettingsData {
     var showJoystick: Boolean = true
     var sfxEnabled: Boolean = true
     var masterVolume: Float = 1f
+    var voxelFlying: Boolean = false
 }

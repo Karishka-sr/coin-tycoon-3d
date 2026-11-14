@@ -8,10 +8,21 @@ and the sound effects, which are synthesised in code (see `com.tycoon.audio`).
 
 Modules: `core` (shared Kotlin+Java), `lwjgl3` (desktop), `android` (APK).
 
-Screens live in `core/.../screen/`: a main menu (play / options / shop / quit),
-the options screen and the shop are `MenuScreen` subclasses; the gameplay screen
-is `GameScreen`. `TycoonGame` owns the shared `Skin`, `Settings` and
-`TycoonState` and swaps screens, disposing the outgoing one (never the skin).
+Screens live in `core/.../screen/`: a main menu (play / block world / options /
+shop / quit), the options screen and the shop are `MenuScreen` subclasses; the
+gameplay screens are `GameScreen` (coin arena) and `VoxelScreen` (block world).
+`TycoonGame` owns the shared `Skin`, `Settings` and `TycoonState` and swaps
+screens, disposing the outgoing one (never the skin).
+
+Both gameplay modes feed the same `TycoonState`, so coins earned by mining in
+the block world can be spent on the arena upgrades and vice versa.
+
+The block world is split along a Kotlin/Java seam that keeps it testable:
+`com.tycoon.voxel` (pure Java, no GL) owns `BlockType`, `VoxelWorld`,
+`TerrainGenerator`, `VoxelRaycast`, `BlockGeometry`, `VoxelPlayer` and
+`VoxelInventory`; `gfx/VoxelRenderer.kt` and `screen/VoxelScreen.kt` are the only
+places that touch OpenGL. `BlockGeometry` culls hidden faces and returns plain
+vertex/index arrays, so the meshing can be asserted in a headless test.
 
 ## Build
 
@@ -66,3 +77,16 @@ audio devices are benign.
   be played straight from memory; `sfx/` is generated at runtime and gitignored.
 - `SoundBank` must be constructed after `Gdx.app` exists (in `create()`), not in
   a field initialiser, because it touches `Gdx.files` and `Gdx.audio`.
+- The block world is generated from `TycoonState.voxelSeed` and the player's
+  edits are replayed on top, so the save file stores a seed plus an edit list
+  instead of 200k block ids. `VoxelScreen.saveVoxelState` flattens edits to
+  `[x, y, z, blockId]` quads; keep that layout in sync with `replayEdits`.
+- `BlockGeometry` meshes a chunk into one `Mesh`, so a chunk must stay under
+  65535 vertices for short indices. `CHUNK_SIZE = 16` keeps the worst case at
+  ~33k vertices; a larger chunk would need 32-bit indices.
+- Editing a block only dirties its own chunk, except on a chunk border, where
+  the neighbour's visible faces change too — `VoxelScreen.markDirtyAround`
+  handles both.
+- `Mesh` built from raw arrays goes through `ModelBuilder.part(...)`, not
+  `ModelBuilder.createBox`, so `VoxelRenderer` must dispose the resulting
+  `Model` (which disposes the mesh) when a chunk is rebuilt.

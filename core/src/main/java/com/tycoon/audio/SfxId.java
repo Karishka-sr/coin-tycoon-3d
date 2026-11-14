@@ -28,7 +28,15 @@ public enum SfxId {
             new Tone(150.0, 110.0, 0.12, 0.40, Wave.SQUARE)),
 
     /** Soft tick under the UI buttons. */
-    UI_CLICK(0.40f, 1.0f, new Tone(600.0, 700.0, 0.045, 0.70, Wave.SINE));
+    UI_CLICK(0.40f, 1.0f, new Tone(600.0, 700.0, 0.045, 0.70, Wave.SINE)),
+
+    /** Dull thud when a block is broken in the voxel world. */
+    BLOCK_DIG(0.55f, 1.0f,
+            new Tone(220.0, 90.0, 0.10, 0.55, Wave.SQUARE),
+            new Tone(160.0, 70.0, 0.07, 0.35, Wave.SQUARE)),
+
+    /** Short clack when a block is placed. */
+    BLOCK_PLACE(0.45f, 1.0f, new Tone(420.0, 300.0, 0.06, 0.60, Wave.SQUARE));
 
     /** Base gain in 0..1, before the player's volume setting is applied. */
     public final float gain;

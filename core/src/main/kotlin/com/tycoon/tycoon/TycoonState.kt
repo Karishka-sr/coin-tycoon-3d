@@ -25,6 +25,18 @@ class TycoonState {
     var playtime: Float = 0f
         private set
 
+    /**
+     * Seed of the voxel world. The terrain is regenerated from it on load and the
+     * player's edits are replayed on top, which keeps the save file small.
+     */
+    var voxelSeed: Long = 0L
+
+    /** Player edits to the voxel world, flattened as x, y, z, block id quads. */
+    var voxelEdits: IntArray = IntArray(0)
+
+    /** Hotbar contents, in [com.tycoon.voxel.VoxelInventory.HOTBAR] order. */
+    var voxelInventory: IntArray = IntArray(0)
+
     init {
         Upgrade.entries.forEach { levels[it] = 0 }
     }
@@ -88,6 +100,9 @@ class TycoonState {
         data.totalEarned = totalEarned
         data.coinsCollected = coinsCollected
         data.playtime = playtime
+        data.voxelSeed = voxelSeed
+        data.voxelEdits = voxelEdits
+        data.voxelInventory = voxelInventory
         Upgrade.entries.forEach { data.levels[it.name] = levelOf(it) }
     }
 
@@ -96,6 +111,9 @@ class TycoonState {
         totalEarned = data.totalEarned
         coinsCollected = data.coinsCollected
         playtime = data.playtime
+        voxelSeed = data.voxelSeed
+        voxelEdits = data.voxelEdits
+        voxelInventory = data.voxelInventory
         Upgrade.entries.forEach { levels[it] = data.levels[it.name] ?: 0 }
     }
 

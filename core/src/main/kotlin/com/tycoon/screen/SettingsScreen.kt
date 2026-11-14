@@ -30,6 +30,7 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
     private val crosshairCheck = CheckBox("Показывать прицел", skin)
     private val joystickCheck = CheckBox("Показывать джойстик", skin)
     private val soundCheck = CheckBox("Звук", skin)
+    private val flyCheck = CheckBox("Полёт в мире блоков", skin)
 
     init {
         val table = contentTable()
@@ -53,6 +54,7 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
         table.add(bind(invertCheck, settings.invertLookY) { settings.invertLookY = it }).colspan(2).left().row()
         table.add(bind(crosshairCheck, settings.showCrosshair) { settings.showCrosshair = it }).colspan(2).left().row()
         table.add(bind(joystickCheck, settings.showJoystick) { settings.showJoystick = it }).colspan(2).left().row()
+        table.add(bind(flyCheck, settings.voxelFlying) { settings.voxelFlying = it }).colspan(2).left().row()
 
         volumeSlider.value = settings.masterVolume
         volumeSlider.addListener(object : ChangeListener() {
@@ -101,6 +103,7 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
         invertCheck.isChecked = settings.invertLookY
         crosshairCheck.isChecked = settings.showCrosshair
         joystickCheck.isChecked = settings.showJoystick
+        flyCheck.isChecked = settings.voxelFlying
         volumeSlider.value = settings.masterVolume
         soundCheck.isChecked = settings.sfxEnabled
         refreshSensitivity()

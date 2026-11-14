@@ -9,6 +9,7 @@ import com.tycoon.screen.GameScreen
 import com.tycoon.screen.MainMenuScreen
 import com.tycoon.screen.SettingsScreen
 import com.tycoon.screen.ShopScreen
+import com.tycoon.screen.VoxelScreen
 import com.tycoon.tycoon.SaveManager
 import com.tycoon.tycoon.Settings
 import com.tycoon.tycoon.SettingsManager
@@ -50,6 +51,8 @@ class TycoonGame : Game() {
     fun showMainMenu() = swap(MainMenuScreen(this))
 
     fun startGame() = swap(GameScreen(this))
+
+    fun showVoxelWorld() = swap(VoxelScreen(this))
 
     fun showSettings() = swap(SettingsScreen(this))
 

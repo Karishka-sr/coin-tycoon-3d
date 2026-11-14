@@ -24,6 +24,9 @@ class Settings {
             field = value.coerceIn(MIN_VOLUME, MAX_VOLUME)
         }
 
+    /** Whether the block-world player flies instead of walking. Persisted. */
+    var voxelFlying: Boolean = false
+
     fun snapshot(): SettingsData = SettingsData().also { data ->
         data.lookSensitivity = lookSensitivity
         data.invertLookY = invertLookY
@@ -31,6 +34,7 @@ class Settings {
         data.showJoystick = showJoystick
         data.sfxEnabled = sfxEnabled
         data.masterVolume = masterVolume
+        data.voxelFlying = voxelFlying
     }
 
     fun restore(data: SettingsData) {
@@ -40,6 +44,7 @@ class Settings {
         showJoystick = data.showJoystick
         sfxEnabled = data.sfxEnabled
         masterVolume = data.masterVolume
+        voxelFlying = data.voxelFlying
     }
 
     companion object {
