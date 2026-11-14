@@ -47,7 +47,7 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
             }
         })
         table.add(Label("Чувствительность обзора", skin)).left()
-        table.add(sensitivitySlider).width(300f).left().row()
+        table.add(sensitivitySlider).width(380f).left().row()
         table.add().left()
         table.add(sensitivityValue).left().row()
 
@@ -65,23 +65,23 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
             }
         })
         table.add(Label("Громкость", skin)).left().padTop(16f)
-        table.add(volumeSlider).width(300f).left().row()
+        table.add(volumeSlider).width(380f).left().row()
         table.add().left()
         table.add(volumeValue).left().row()
 
         table.add(bind(soundCheck, settings.sfxEnabled) { settings.sfxEnabled = it }).colspan(2).left().row()
 
-        val reset = TextButton("Вернуть настройки по умолчанию", skin)
+        val reset = TextButton("Вернуть настройки по умолчанию", skin, "big")
         reset.onClick(game.sound) {
             settings.restore(Settings().snapshot())
             game.saveSettings()
             syncControls()
         }
-        table.add(reset).colspan(2).width(360f).padTop(12f).row()
+        table.add(reset).colspan(2).width(480f).height(68f).padTop(16f).row()
 
-        val back = TextButton("Назад", skin)
+        val back = TextButton("Назад", skin, "big")
         back.onClick(game.sound) { game.swapLater { game.showMainMenu() } }
-        table.add(back).colspan(2).width(360f).height(52f).padTop(4f).row()
+        table.add(back).colspan(2).width(480f).height(86f).padTop(8f).row()
 
         syncControls()
     }

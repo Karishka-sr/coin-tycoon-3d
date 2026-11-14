@@ -30,13 +30,15 @@ object UiSkin {
     fun create(): Skin {
         val skin = Skin()
 
-        val regular = generate(FONT_FILE, 20, Color.WHITE)
-        val title = generate(FONT_BOLD_FILE, 30, Color.WHITE)
-        val small = generate(FONT_FILE, 16, Color(0.85f, 0.85f, 0.9f, 1f))
+        val regular = generate(FONT_FILE, 23, Color.WHITE)
+        val title = generate(FONT_BOLD_FILE, 58, Color.WHITE)
+        val small = generate(FONT_FILE, 17, Color(0.85f, 0.85f, 0.9f, 1f))
+        val big = generate(FONT_BOLD_FILE, 30, Color.WHITE)
 
         skin.add("default-font", regular)
         skin.add("title-font", title)
         skin.add("small-font", small)
+        skin.add("big-font", big)
 
         skin.add("white", whiteTexture())
 
@@ -62,6 +64,7 @@ object UiSkin {
 
         skin.add("default", buttonStyle(regular))
         skin.add("shop", buttonStyle(small))
+        skin.add("big", buttonStyle(big))
         skin.add("default", CheckBox.CheckBoxStyle(
             skin.getDrawable("checkbox-off"), skin.getDrawable("checkbox-on"), regular, Color.WHITE,
         ))

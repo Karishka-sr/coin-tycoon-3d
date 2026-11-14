@@ -22,6 +22,7 @@ import com.tycoon.tycoon.Upgrade
 import com.tycoon.ui.VoxelHud
 import com.tycoon.voxel.BlockGeometry
 import com.tycoon.voxel.BlockType
+import com.tycoon.voxel.StallFarm
 import com.tycoon.voxel.TerrainGenerator
 import com.tycoon.voxel.VoxelInventory
 import com.tycoon.voxel.VoxelPlayer
@@ -55,10 +56,11 @@ class VoxelScreen(private val game: TycoonGame) : ScreenAdapter() {
     private val raycast = VoxelRaycast()
     private val renderer = VoxelRenderer(world)
 
-    private val hud = VoxelHud(
-        game.skin, state, game.settings, game.sound, inventory,
-        { mine() }, { place() }, { player.jump() }, { toggleFly() }, { buy(it) }, { openMenu() },
-    )
+    // Indexed after the terrain and the saved edits are in place, so stalls the
+    // player built in an earlier session keep earning.
+    private lateinit var farm: StallFarm
+
+    private lateinit var hud: VoxelHud
 
     val environment = Environment().apply {
         set(ColorAttribute(ColorAttribute.AmbientLight, 0.62f, 0.64f, 0.68f, 1f))
@@ -87,6 +89,12 @@ class VoxelScreen(private val game: TycoonGame) : ScreenAdapter() {
         val seed = if (state.voxelSeed != 0L) state.voxelSeed else Random.nextLong().also { state.voxelSeed = it }
         TerrainGenerator(seed).generate(world)
         replayEdits()
+
+        farm = StallFarm(world)
+        hud = VoxelHud(
+            game.skin, state, game.settings, game.sound, inventory, farm,
+            { mine() }, { place() }, { player.jump() }, { toggleFly() }, { buy(it) }, { openMenu() },
+        )
 
         inventory.restore(state.voxelInventory)
         if (state.voxelInventory.isEmpty()) {
@@ -145,6 +153,7 @@ class VoxelScreen(private val game: TycoonGame) : ScreenAdapter() {
 
         actionCooldown = ACTION_DELAY
         world.setAndRecord(raycast.blockX, raycast.blockY, raycast.blockZ, BlockType.AIR)
+        if (type == BlockType.STALL) farm.onRemoved(raycast.blockX, raycast.blockY, raycast.blockZ)
         markDirtyAround(raycast.blockX, raycast.blockZ)
 
         inventory.add(type.drop(), 1)
@@ -176,6 +185,7 @@ class VoxelScreen(private val game: TycoonGame) : ScreenAdapter() {
 
         actionCooldown = ACTION_DELAY
         world.setAndRecord(x, y, z, block)
+        if (block == BlockType.STALL) farm.onPlaced(x, y, z)
         markDirtyAround(x, z)
         game.sound.play(SfxId.BLOCK_PLACE)
     }
@@ -214,6 +224,9 @@ class VoxelScreen(private val game: TycoonGame) : ScreenAdapter() {
             else -> 0f
         }
         player.update(world, delta, worldMove.x * speed, worldMove.y * speed, vertical)
+
+        val stallPayout = farm.update(delta, state.stallValueMultiplier)
+        if (stallPayout > 0.0) state.onCollect(stallPayout)
 
         renderer.flush()
         syncCamera()

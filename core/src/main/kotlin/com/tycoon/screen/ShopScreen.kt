@@ -26,9 +26,9 @@ class ShopScreen(game: TycoonGame) : MenuScreen(game) {
         table.add(coins).padBottom(8f).row()
         table.add(panel).row()
 
-        val back = TextButton("Назад", skin)
+        val back = TextButton("Назад", skin, "big")
         back.onClick(game.sound) { game.swapLater { game.showMainMenu() } }
-        table.add(back).width(360f).height(52f).padTop(10f).row()
+        table.add(back).width(480f).height(86f).padTop(14f).row()
 
         refresh()
     }

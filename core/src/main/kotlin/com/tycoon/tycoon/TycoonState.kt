@@ -87,6 +87,13 @@ class TycoonState {
 
     val capacity: Int get() = 12 + 4 * levelOf(Upgrade.CAPACITY)
     val passiveIncome: Double get() = 1.0 * levelOf(Upgrade.PASSIVE_INCOME)
+
+    /**
+     * Output multiplier for a market stall in the block world. The passive-income
+     * line drives both the arena's idle payout and the stalls, so one upgrade
+     * speeds up both modes.
+     */
+    val stallValueMultiplier: Double get() = 1.0 + 0.5 * levelOf(Upgrade.PASSIVE_INCOME)
     val moveSpeed: Float get() = 10f + 1.4f * levelOf(Upgrade.MOVE_SPEED)
     val bigCoinChance: Double get() = 0.04 + 0.03 * levelOf(Upgrade.LUCK)
 

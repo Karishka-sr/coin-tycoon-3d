@@ -3,6 +3,7 @@ package com.tycoon
 import com.tycoon.voxel.BlockGeometry
 import com.tycoon.voxel.BlockType
 import com.tycoon.voxel.TerrainGenerator
+import com.tycoon.voxel.StallFarm
 import com.tycoon.voxel.VoxelInventory
 import com.tycoon.voxel.VoxelMesh
 import com.tycoon.voxel.VoxelPlayer
@@ -466,5 +467,151 @@ class VoxelInventoryTest {
         other.restore(inventory.snapshot())
         assertEquals(inventory.count(BlockType.SAND), other.count(BlockType.SAND))
         assertEquals(inventory.count(BlockType.COBBLESTONE), other.count(BlockType.COBBLESTONE))
+    }
+
+    @Test
+    fun `the starting kit includes stalls and roof tiles`() {
+        val inventory = VoxelInventory()
+        inventory.fillStartingKit()
+        assertTrue(inventory.count(BlockType.STALL) > 0)
+        assertTrue(inventory.count(BlockType.ROOF) > 0)
+    }
+}
+
+class VillageBuilderTest {
+
+    private fun count(world: VoxelWorld, type: BlockType): Int {
+        var total = 0
+        for (x in 0 until VoxelWorld.SIZE_X) {
+            for (y in 0 until VoxelWorld.SIZE_Y) {
+                for (z in 0 until VoxelWorld.SIZE_Z) {
+                    if (world.get(x, y, z) == type) total++
+                }
+            }
+        }
+        return total
+    }
+
+    @Test
+    fun `the generated world has cottages and stalls instead of bare hills`() {
+        val world = VoxelWorld()
+        TerrainGenerator(2024L).generate(world)
+
+        assertTrue(count(world, BlockType.ROOF) >= 20, "no cottage roofs were built")
+        assertTrue(count(world, BlockType.STALL) >= 4, "no market stalls were built")
+    }
+
+    @Test
+    fun `the market square is flat and clear of the middle`() {
+        val world = VoxelWorld()
+        TerrainGenerator(2024L).generate(world)
+
+        val centreX = VoxelWorld.SIZE_X / 2
+        val centreZ = VoxelWorld.SIZE_Z / 2
+
+        // The square is levelled to one height; find that floor and check it is
+        // walkable, with clear air above it.
+        var floorY = -1
+        for (y in 1 until VoxelWorld.SIZE_Y) {
+            if (world.get(centreX, y, centreZ) == BlockType.PLANK) floorY = y
+        }
+        assertTrue(floorY > VoxelWorld.SEA_LEVEL, "the square was not laid above sea level")
+        assertTrue(world.isAir(centreX, floorY + 1, centreZ), "something stands in the square")
+        assertTrue(world.isAir(centreX, floorY + 4, centreZ), "the square is not open to the sky")
+    }
+
+    @Test
+    fun `every stall sits on the square rather than inside a hill`() {
+        val world = VoxelWorld()
+        TerrainGenerator(2024L).generate(world)
+
+        var stalls = 0
+        for (x in 0 until VoxelWorld.SIZE_X) {
+            for (y in 0 until VoxelWorld.SIZE_Y) {
+                for (z in 0 until VoxelWorld.SIZE_Z) {
+                    if (world.get(x, y, z) != BlockType.STALL) continue
+                    stalls++
+                    // The block under a stall is a counter, and the block above is open.
+                    assertTrue(world.get(x, y - 1, z) == BlockType.PLANK, "stall at $x,$y,$z has no counter")
+                    assertTrue(world.isAir(x, y + 1, z), "stall at $x,$y,$z is buried")
+                }
+            }
+        }
+        assertEquals(8, stalls, "the square should hold one stall per ring position")
+    }
+
+    @Test
+    fun `the village is deterministic for a seed`() {
+        val a = VoxelWorld()
+        val b = VoxelWorld()
+        TerrainGenerator(77L).generate(a)
+        TerrainGenerator(77L).generate(b)
+
+        assertEquals(count(a, BlockType.ROOF), count(b, BlockType.ROOF))
+        assertEquals(count(a, BlockType.STALL), count(b, BlockType.STALL))
+    }
+}
+
+class StallFarmTest {
+
+    @Test
+    fun `indexing finds the stalls standing in the world`() {
+        val world = VoxelWorld()
+        world.set(3, 5, 3, BlockType.STALL)
+        world.set(4, 5, 3, BlockType.STALL)
+        world.set(5, 5, 3, BlockType.STONE)
+
+        val farm = StallFarm(world)
+        assertEquals(2, farm.stallCount())
+    }
+
+    @Test
+    fun `an empty farm earns nothing and does not bank a payout`() {
+        val farm = StallFarm(VoxelWorld())
+        assertEquals(0.0, farm.coinsPerSecond(1.0), 1e-9)
+        assertEquals(0.0, farm.update(100f, 1.0), 1e-9)
+    }
+
+    @Test
+    fun `stalls pay out once per interval and keep the remainder`() {
+        val world = VoxelWorld()
+        world.set(1, 1, 1, BlockType.STALL)
+        val farm = StallFarm(world)
+
+        val expected = StallFarm.BASE_COINS_PER_SECOND * StallFarm.PAYOUT_INTERVAL
+
+        // A step shorter than the interval banks time but pays nothing yet.
+        assertEquals(0.0, farm.update(StallFarm.PAYOUT_INTERVAL / 2f, 1.0), 1e-9)
+        assertEquals(expected, farm.update(StallFarm.PAYOUT_INTERVAL / 2f, 1.0), 1e-6)
+
+        // A long step pays every whole interval it covers.
+        assertEquals(expected * 2, farm.update(StallFarm.PAYOUT_INTERVAL * 2.5f, 1.0), 1e-6)
+    }
+
+    @Test
+    fun `the multiplier scales the payout`() {
+        val world = VoxelWorld()
+        world.set(1, 1, 1, BlockType.STALL)
+        val farm = StallFarm(world)
+
+        val single = farm.update(StallFarm.PAYOUT_INTERVAL, 1.0)
+        val doubled = farm.update(StallFarm.PAYOUT_INTERVAL, 2.0)
+        assertEquals(single * 2, doubled, 1e-6)
+    }
+
+    @Test
+    fun `placing and mining stalls updates the farm without a rescan`() {
+        val farm = StallFarm(VoxelWorld())
+        assertEquals(0, farm.stallCount())
+
+        farm.onPlaced(2, 3, 4)
+        assertEquals(1, farm.stallCount())
+
+        // Registering the same stall twice must not double its output.
+        farm.onPlaced(2, 3, 4)
+        assertEquals(1, farm.stallCount())
+
+        farm.onRemoved(2, 3, 4)
+        assertEquals(0, farm.stallCount())
     }
 }

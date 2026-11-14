@@ -38,8 +38,8 @@ class ShopPanel(
             label.wrap = true
             label.setAlignment(Align.left)
 
-            add(button).width(320f).left()
-            add(label).width(320f).left().row()
+            add(button).width(400f).left()
+            add(label).width(400f).left().row()
             rows[upgrade] = button
         }
     }

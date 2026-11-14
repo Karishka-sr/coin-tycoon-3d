@@ -8,15 +8,18 @@ package com.tycoon.voxel;
  * generator stays dependency-free (and therefore unit-testable headlessly).
  *
  * <p>The shape is deliberately Minecraft-like: a bedrock floor, stone with ore
- * veins, a dirt layer capped with grass, sand around the shoreline, water filling
- * the low spots, and the occasional tree.
+ * veins, a dirt layer capped with grass, sand around the shoreline and water
+ * filling the low spots. On top of that a village is raised, so the surface is
+ * dotted with cottages and market stalls rather than bare hills.
  */
 public final class TerrainGenerator {
 
     private final long seed;
+    private final VillageBuilder village;
 
     public TerrainGenerator(long seed) {
         this.seed = seed;
+        this.village = new VillageBuilder(seed);
     }
 
     /** Clears {@code world} and fills it with fresh terrain. */
@@ -32,7 +35,7 @@ public final class TerrainGenerator {
             }
         }
 
-        plantTrees(world, heights);
+        village.build(world, heights);
     }
 
     /** Terrain surface height for a column, in blocks. */
@@ -97,53 +100,6 @@ public final class TerrainGenerator {
         }
         return null;
     }
-
-    private void plantTrees(VoxelWorld world, int[][] heights) {
-        for (int x = 3; x < VoxelWorld.SIZE_X - 3; x++) {
-            for (int z = 3; z < VoxelWorld.SIZE_Z - 3; z++) {
-                int height = heights[x][z];
-                if (height <= VoxelWorld.SEA_LEVEL) {
-                    continue;
-                }
-                if (world.get(x, height, z) != BlockType.GRASS) {
-                    continue;
-                }
-                if (hash01(x, 7, z, 0x51EDL) >= 0.012) {
-                    continue;
-                }
-                growTree(world, x, height + 1, z);
-            }
-        }
-    }
-
-    private void growTree(VoxelWorld world, int x, int baseY, int z) {
-        int trunk = 4 + (int) (hash01(x, 3, z, 0xBEEFL) * 3);
-
-        for (int i = 0; i < trunk; i++) {
-            world.set(x, baseY + i, z, BlockType.WOOD);
-        }
-
-        int canopyY = baseY + trunk - 1;
-        for (int dy = -1; dy <= 2; dy++) {
-            int radius = dy <= 0 ? 2 : 1;
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    // Trim the corners so the crown looks round rather than cubic.
-                    if (Math.abs(dx) == radius && Math.abs(dz) == radius && (dy >= 1 || hash01(x + dx, canopyY + dy, z + dz, 0x7F3L) < 0.5)) {
-                        continue;
-                    }
-                    int bx = x + dx;
-                    int by = canopyY + dy;
-                    int bz = z + dz;
-                    if (world.isAir(bx, by, bz)) {
-                        world.set(bx, by, bz, BlockType.LEAVES);
-                    }
-                }
-            }
-        }
-    }
-
-    // ---- noise -------------------------------------------------------------
 
     /** Smooth value noise in roughly [-1, 1]. */
     private float noise(float x, float z) {

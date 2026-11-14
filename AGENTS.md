@@ -19,10 +19,16 @@ the block world can be spent on the arena upgrades and vice versa.
 
 The block world is split along a Kotlin/Java seam that keeps it testable:
 `com.tycoon.voxel` (pure Java, no GL) owns `BlockType`, `VoxelWorld`,
-`TerrainGenerator`, `VoxelRaycast`, `BlockGeometry`, `VoxelPlayer` and
-`VoxelInventory`; `gfx/VoxelRenderer.kt` and `screen/VoxelScreen.kt` are the only
-places that touch OpenGL. `BlockGeometry` culls hidden faces and returns plain
-vertex/index arrays, so the meshing can be asserted in a headless test.
+`TerrainGenerator`, `VillageBuilder`, `StallFarm`, `VoxelRaycast`,
+`BlockGeometry`, `VoxelPlayer` and `VoxelInventory`; `gfx/VoxelRenderer.kt` and
+`screen/VoxelScreen.kt` are the only places that touch OpenGL. `BlockGeometry`
+culls hidden faces and returns plain vertex/index arrays, so the meshing can be
+asserted in a headless test.
+
+The surface is a village: `VillageBuilder` levels a market square, rings it with
+market stalls and drops cottages on flat ground. Each `BlockType.STALL` block is
+a farm — `StallFarm` indexes them and pays coins on a timer, feeding the same
+`TycoonState` the arena uses.
 
 ## Build
 

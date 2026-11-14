@@ -8,10 +8,16 @@ package com.tycoon.voxel;
  */
 public class VoxelInventory {
 
-    /** The placeable blocks, in hotbar order. */
+    /**
+     * The placeable blocks, in hotbar order.
+     *
+     * <p>New blocks are appended rather than inserted: saved games store the
+     * counts by slot, so reordering would move a player's blocks to other types.
+     */
     public static final BlockType[] HOTBAR = {
         BlockType.GRASS, BlockType.DIRT, BlockType.STONE, BlockType.COBBLESTONE,
         BlockType.SAND, BlockType.WOOD, BlockType.PLANK, BlockType.BRICK, BlockType.GLASS,
+        BlockType.ROOF, BlockType.STALL,
     };
 
     private final int[] counts = new int[HOTBAR.length];
@@ -22,6 +28,9 @@ public class VoxelInventory {
         counts[slotOf(BlockType.COBBLESTONE)] = 32;
         counts[slotOf(BlockType.PLANK)] = 16;
         counts[slotOf(BlockType.GLASS)] = 8;
+        // A couple of stalls to start a farm with, plus roof tiles to build with.
+        counts[slotOf(BlockType.STALL)] = 2;
+        counts[slotOf(BlockType.ROOF)] = 12;
     }
 
     public int selectedIndex() {

@@ -15,6 +15,7 @@ import com.tycoon.tycoon.Settings
 import com.tycoon.tycoon.TycoonState
 import com.tycoon.tycoon.Upgrade
 import com.tycoon.voxel.BlockType
+import com.tycoon.voxel.StallFarm
 import com.tycoon.voxel.VoxelInventory
 
 /**
@@ -31,6 +32,7 @@ class VoxelHud(
     private val settings: Settings,
     private val sound: SoundBank,
     private val inventory: VoxelInventory,
+    private val farm: StallFarm,
     private val onMine: () -> Unit,
     private val onPlace: () -> Unit,
     private val onJump: () -> Unit,
@@ -79,12 +81,14 @@ class VoxelHud(
             val slot = HotbarSlot(i)
             slots.add(slot)
             hotbar.add(slot.button).size(56f).pad(3f)
+            // Two rows of six, so the bar still fits a phone in portrait.
+            if (i % 6 == 5) hotbar.row()
         }
 
         val actions = Table()
         actions.setFillParent(true)
         actions.right().pad(16f)
-        actions.defaults().pad(4f).width(150f).height(52f)
+        actions.defaults().pad(5f).width(176f).height(62f)
         actions.touchable = Touchable.childrenOnly
 
         val mine = TextButton("Копать", skin)
@@ -155,8 +159,15 @@ class VoxelHud(
     }
 
     private fun refresh() {
-        stats.setText("${state.coins.toLong()} монет   (+${state.incomePerSecond.toInt()}/с)")
-        hint.setText("WASD / стик — ходьба, мышь / свайп — камера, ЛКМ — копать, ПКМ — ставить, Space — прыжок, F — полёт, Tab — магазин")
+        val perSecond = farm.coinsPerSecond(state.stallValueMultiplier)
+        stats.setText(
+            "${state.coins.toLong()} монет   ·   ларьков: ${farm.stallCount()} " +
+                "(+${formatRate(perSecond)}/с)"
+        )
+        hint.setText(
+            "WASD / стик — ходьба, мышь / свайп — камера, ЛКМ — копать, ПКМ — ставить, " +
+                "Space — прыжок, F — полёт, Tab — магазин. Ставь ларьки — они приносят монеты."
+        )
         joystick.isVisible = settings.showJoystick
         crosshair.isVisible = settings.showCrosshair
         for (slot in slots) slot.refresh()
@@ -202,7 +213,15 @@ class VoxelHud(
             BlockType.PLANK -> "Доски"
             BlockType.BRICK -> "Кирпич"
             BlockType.GLASS -> "Стекло"
+            BlockType.ROOF -> "Крыша"
+            BlockType.STALL -> "Ларёк"
             else -> block.name
+        }
+
+        /** Rates read better with one decimal, and whole numbers stay whole. */
+        fun formatRate(value: Double): String {
+            val rounded = kotlin.math.round(value * 10.0) / 10.0
+            return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
         }
     }
 }

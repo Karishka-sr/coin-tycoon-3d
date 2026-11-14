@@ -30,7 +30,19 @@ public enum BlockType {
     IRON_ORE(rgb(0.68f, 0.55f, 0.42f), true, true, 14.0),
     GOLD_ORE(rgb(0.92f, 0.76f, 0.24f), true, true, 30.0),
     DIAMOND_ORE(rgb(0.36f, 0.86f, 0.88f), true, true, 60.0),
-    WATER(rgb(0.20f, 0.42f, 0.78f), false, false, 0.0);
+    WATER(rgb(0.20f, 0.42f, 0.78f), false, false, 0.0),
+
+    // New types go at the end: saved edits store the ordinal, so inserting one
+    // above WATER would silently turn saved water into roof tiles.
+
+    /** Roof tiles: the pitched red lid every cottage in the village wears. */
+    ROOF(rgb(0.68f, 0.24f, 0.20f), true, true, 1.5),
+
+    /**
+     * A market stall. Placing one starts a farm: it pays coins on a timer, so
+     * the block world earns on its own the way the arena's passive income does.
+     */
+    STALL(rgb(0.95f, 0.82f, 0.35f), rgb(0.85f, 0.35f, 0.30f), rgb(0.55f, 0.40f, 0.22f), true, true, 4.0);
 
     private final float[] top;
     private final float[] side;
