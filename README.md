@@ -50,7 +50,9 @@ Kotlin-часть: экран игры, рендереры, игрок, каме
 
 ## Android (APK)
 
-Укажите путь к SDK в `local.properties`:
+**Готовый APK:** скачать из [последнего релиза](https://github.com/Karishka-sr/coin-tycoon-3d/releases/latest).
+
+Сборка из исходников. Укажите путь к SDK в `local.properties`:
 
 ```properties
 sdk.dir=/path/to/android-sdk
