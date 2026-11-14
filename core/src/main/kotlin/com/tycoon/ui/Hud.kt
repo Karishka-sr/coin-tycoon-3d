@@ -10,6 +10,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.tycoon.audio.SfxId
 import com.tycoon.audio.SoundBank
+import com.tycoon.anim.EasingStyle
+import com.tycoon.anim.Spring
 import com.tycoon.tycoon.Settings
 import com.tycoon.tycoon.TycoonState
 import com.tycoon.tycoon.Upgrade
@@ -47,6 +49,11 @@ class Hud(
 
     private val shop = ShopPanel(skin, state, onBuy)
     private val shopOverlay = Table()
+
+    // A spring and a pulse give the coin readout a little life: the number eases
+    // towards the real total, and a fresh pickup briefly swells the label.
+    private val coinSpring = Spring(dampingRatio = 0.6, frequency = 1.4, start = state.coins)
+    private var coinPulse = 0f
 
     var shopVisible = false
         private set
@@ -105,13 +112,25 @@ class Hud(
     }
 
     fun render(delta: Float) {
-        refresh()
+        refresh(delta)
         stage.act(delta)
         stage.draw()
     }
 
-    private fun refresh() {
-        stats.setText("${state.coins.toLong()} монет   (+${state.incomePerSecond.toInt()}/с)")
+    /** Swells the coin readout; the screen calls this when a coin is collected. */
+    fun pulseCoins() {
+        coinPulse = 1f
+    }
+
+    private fun refresh(delta: Float) {
+        val shown = coinSpring.update(state.coins, delta)
+        if (coinPulse > 0f) {
+            coinPulse = (coinPulse - delta * PULSE_DECAY).coerceAtLeast(0f)
+        }
+        // The bounce curve peaks near the start, which reads as a quick pop.
+        val scale = 1f + 0.18f * EasingStyle.BOUNCE.apply(coinPulse.toDouble()).toFloat()
+        stats.setFontScale(scale)
+        stats.setText("${shown.toLong()} монет   (+${state.incomePerSecond.toInt()}/с)")
         joystick.isVisible = settings.showJoystick
         crosshair.isVisible = settings.showCrosshair
         if (shopVisible) shop.refresh()
@@ -119,5 +138,9 @@ class Hud(
 
     fun dispose() {
         stage.dispose()
+    }
+
+    private companion object {
+        const val PULSE_DECAY = 3f
     }
 }

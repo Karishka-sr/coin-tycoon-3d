@@ -39,6 +39,13 @@
 ассеты — два шрифта DejaVu (нужны для кириллицы в интерфейсе). Звуковые
 эффекты тоже генерируются кодом, поэтому звуковых файлов в проекте нет.
 
+Плавность интерфейса (счётчик монет «догоняет» значение, подбор монеты
+подсвечивает цифру) сделана на кривых из библиотеки
+[`otter`](https://github.com/roblox/otter) — официальной анимационной
+библиотеки Roblox (лицензия MIT). Исходники `ease.lua` и `spring.lua` лежат в
+`core/src/main/resources/vendor/roblox-otter/`, а их порт на Kotlin — в
+`core/src/main/kotlin/com/tycoon/anim/`.
+
 ## Структура
 
 ```
@@ -46,6 +53,7 @@ core/      — общий код игры (Kotlin + Java), не зависит �
 lwjgl3/    — десктопный запуск
 android/   — Android-модуль (сборка APK)
 assets/    — шрифты
+core/src/main/resources/vendor/ — сторонний код (кривые анимаций из otter)
 ```
 
 Java-часть: `ModelFactory`, `MaterialFactory`, `Arena`, `CoinData`, `CoinField`,

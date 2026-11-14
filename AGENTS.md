@@ -8,6 +8,12 @@ and the sound effects, which are synthesised in code (see `com.tycoon.audio`).
 
 Modules: `core` (shared Kotlin+Java), `lwjgl3` (desktop), `android` (APK).
 
+Vendored third-party code lives in `core/src/main/resources/vendor/`. The only
+entry is Roblox's `otter` (MIT) — `ease.lua` and `spring.lua` provide the easing
+curves and the damped-spring solver. They are ported to Kotlin under
+`com.tycoon.anim` (`EasingStyle`, `CubicBezier`, `Spring`) and drive the HUD coin
+counter. Keep the port's maths identical to the vendored Lua if it is updated.
+
 Screens live in `core/.../screen/`: a main menu (play / block world / options /
 shop / quit), the options screen and the shop are `MenuScreen` subclasses; the
 gameplay screens are `GameScreen` (coin arena) and `VoxelScreen` (block world).

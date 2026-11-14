@@ -8,7 +8,7 @@ android {
         applicationId 'com.tycoon.android'
         minSdk rootProject.ext.androidMinSdk
         targetSdk rootProject.ext.androidTargetSdk
-        versionCode 6
+        versionCode 7
         versionName rootProject.version
     }
 

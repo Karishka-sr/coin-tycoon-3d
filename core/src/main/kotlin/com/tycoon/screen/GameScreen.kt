@@ -118,6 +118,7 @@ class GameScreen(private val game: TycoonGame) : ScreenAdapter() {
         if (collected > 0.0) {
             game.sound.play(if (field.bigCoinCollected()) SfxId.BIG_COIN else SfxId.COIN_PICKUP)
             state.onCollect(collected * state.coinValueMultiplier)
+            hud.pulseCoins()
         }
         state.update(delta)
 
