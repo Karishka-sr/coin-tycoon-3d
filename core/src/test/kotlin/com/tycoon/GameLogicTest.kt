@@ -1,6 +1,7 @@
 package com.tycoon
 
 import com.badlogic.gdx.math.Vector3
+import com.tycoon.tycoon.Settings
 import com.tycoon.tycoon.TycoonState
 import com.tycoon.tycoon.Upgrade
 import com.tycoon.world.CoinField
@@ -207,5 +208,63 @@ class FirstPersonCameraTest {
         assertEquals(3f, camera.position.x, 1e-5f)
         assertEquals(firstPerson.eyeHeight, camera.position.y, 1e-5f)
         assertEquals(-4f, camera.position.z, 1e-5f)
+    }
+
+    @Test
+    fun `dragging up looks up unless the vertical axis is inverted`() {
+        val normal = com.tycoon.world.FirstPersonCamera(camera)
+        normal.rotate(0f, -50f)
+        assertTrue(normal.pitch > 0f)
+
+        val inverted = com.tycoon.world.FirstPersonCamera(camera).apply { invertY = true }
+        inverted.rotate(0f, -50f)
+        assertTrue(inverted.pitch < 0f)
+    }
+
+    @Test
+    fun `higher sensitivity turns further for the same drag`() {
+        val slow = com.tycoon.world.FirstPersonCamera(camera).apply { sensitivity = 0.1f }
+        val fast = com.tycoon.world.FirstPersonCamera(camera).apply { sensitivity = 0.4f }
+        slow.rotate(-40f, 0f)
+        fast.rotate(-40f, 0f)
+        assertTrue(fast.yaw > slow.yaw)
+    }
+}
+
+class SettingsTest {
+
+    @Test
+    fun `sensitivity is clamped to the allowed range`() {
+        val settings = Settings()
+        settings.lookSensitivity = 100f
+        assertEquals(Settings.MAX_SENSITIVITY, settings.lookSensitivity, 1e-6f)
+        settings.lookSensitivity = -5f
+        assertEquals(Settings.MIN_SENSITIVITY, settings.lookSensitivity, 1e-6f)
+    }
+
+    @Test
+    fun `snapshot and restore round trip every field`() {
+        val original = Settings().apply {
+            lookSensitivity = 1.75f
+            invertLookY = true
+            showCrosshair = false
+            showJoystick = false
+        }
+
+        val restored = Settings().apply { restore(original.snapshot()) }
+
+        assertEquals(1.75f, restored.lookSensitivity, 1e-6f)
+        assertTrue(restored.invertLookY)
+        assertFalse(restored.showCrosshair)
+        assertFalse(restored.showJoystick)
+    }
+
+    @Test
+    fun `a fresh settings object uses defaults`() {
+        val settings = Settings()
+        assertEquals(1f, settings.lookSensitivity, 1e-6f)
+        assertFalse(settings.invertLookY)
+        assertTrue(settings.showCrosshair)
+        assertTrue(settings.showJoystick)
     }
 }

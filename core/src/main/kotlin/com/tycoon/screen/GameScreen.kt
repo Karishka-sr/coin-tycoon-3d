@@ -9,15 +9,12 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.ScreenUtils
+import com.tycoon.TycoonGame
 import com.tycoon.gfx.CoinRenderer
 import com.tycoon.gfx.WorldRenderer
-import com.tycoon.tycoon.SaveManager
-import com.tycoon.tycoon.TycoonState
 import com.tycoon.tycoon.Upgrade
 import com.tycoon.ui.Hud
-import com.tycoon.ui.UiSkin
 import com.tycoon.world.CoinField
 import com.tycoon.world.FirstPersonCamera
 import com.tycoon.world.InputController
@@ -26,16 +23,16 @@ import com.tycoon.world.LookInput
 import com.tycoon.world.Player
 
 /**
- * The single gameplay screen: a first-person view over the coin arena plus the
- * upgrade shop.
+ * The gameplay screen: a first-person view over the coin arena plus the upgrade
+ * shop.
  *
  * Movement comes from WASD or the on-screen stick and is resolved relative to
  * where the camera looks; the camera itself turns with mouse drag, a swipe
- * outside the stick, or the arrow / QE keys.
+ * outside the stick, or the arrow / QE keys. Escape opens the main menu.
  */
-class GameScreen : ScreenAdapter() {
+class GameScreen(private val game: TycoonGame) : ScreenAdapter() {
 
-    private val state = TycoonState().apply { SaveManager.load()?.let(::restore) }
+    private val state = game.state
     private val camera = PerspectiveCamera(72f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
     private val firstPerson = FirstPersonCamera(camera)
     private val modelBatch = ModelBatch()
@@ -47,18 +44,17 @@ class GameScreen : ScreenAdapter() {
     private val input = InputController()
     private val field = CoinField()
 
-    private val skin = UiSkin.create()
-    private val hud = Hud(skin, state) { buy(it) }
+    private val hud = Hud(game.skin, state, game.settings, { buy(it) }, { openMenu() })
 
     private val moveInput = Vector2()
     private val worldMove = Vector2()
-    private val lookDirection = Vector3()
 
     private var timeSinceSave = 0f
 
     init {
         camera.near = 0.1f
         camera.far = 400f
+        firstPerson.eyeHeight = EYE_HEIGHT
         firstPerson.update(player.position, 0f)
 
         field.fill()
@@ -69,15 +65,12 @@ class GameScreen : ScreenAdapter() {
         multiplexer.addProcessor(LookInput(firstPerson))
         multiplexer.addProcessor(object : InputAdapter() {
             override fun keyDown(keycode: Int): Boolean {
-                if (keycode == Input.Keys.TAB) {
-                    hud.toggleShop()
-                    return true
+                when (keycode) {
+                    Input.Keys.TAB -> hud.toggleShop()
+                    Input.Keys.ESCAPE -> if (hud.shopVisible) hud.toggleShop() else openMenu()
+                    else -> return false
                 }
-                if (keycode == Input.Keys.ESCAPE && hud.shopVisible) {
-                    hud.toggleShop()
-                    return true
-                }
-                return false
+                return true
             }
 
             override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
@@ -92,6 +85,11 @@ class GameScreen : ScreenAdapter() {
         Gdx.input.inputProcessor = multiplexer
     }
 
+    private fun openMenu() {
+        game.saveProgress()
+        game.swapLater { game.showMainMenu() }
+    }
+
     private fun buy(upgrade: Upgrade) {
         if (state.buy(upgrade)) applyUpgrades()
     }
@@ -104,6 +102,9 @@ class GameScreen : ScreenAdapter() {
     }
 
     override fun render(delta: Float) {
+        firstPerson.sensitivity = BASE_LOOK_SENSITIVITY * game.settings.lookSensitivity
+        firstPerson.invertY = game.settings.invertLookY
+
         firstPerson.turn(input.turn(delta))
 
         moveInput.set(input.movement(hud.stickOutput))
@@ -132,7 +133,7 @@ class GameScreen : ScreenAdapter() {
         timeSinceSave += delta
         if (timeSinceSave >= SAVE_INTERVAL) {
             timeSinceSave = 0f
-            SaveManager.save(state)
+            game.saveProgress()
         }
     }
 
@@ -144,19 +145,20 @@ class GameScreen : ScreenAdapter() {
     }
 
     override fun pause() {
-        SaveManager.save(state)
+        game.saveProgress()
     }
 
     override fun dispose() {
-        SaveManager.save(state)
+        game.saveProgress()
         modelBatch.dispose()
         world.dispose()
         coinRenderer.dispose()
         hud.dispose()
-        skin.dispose()
     }
 
     private companion object {
         const val SAVE_INTERVAL = 5f
+        const val EYE_HEIGHT = 1.7f
+        const val BASE_LOOK_SENSITIVITY = 0.18f
     }
 }

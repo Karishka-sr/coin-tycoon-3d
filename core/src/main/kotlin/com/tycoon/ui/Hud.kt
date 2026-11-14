@@ -1,6 +1,5 @@
 package com.tycoon.ui
 
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Image
@@ -9,13 +8,13 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.tycoon.tycoon.Settings
 import com.tycoon.tycoon.TycoonState
 import com.tycoon.tycoon.Upgrade
-import java.util.EnumMap
 
 /**
- * The on-screen interface: a live stat readout, the movement stick, a centre
- * crosshair and the upgrade shop.
+ * The in-game interface: a live stat readout, the movement stick, a centre
+ * crosshair, the upgrade shop and a button back to the main menu.
  *
  * The stick owns the left half of the screen and the shop owns the top-right;
  * every other overlay is [Touchable.disabled] so drags fall through to the
@@ -24,7 +23,9 @@ import java.util.EnumMap
 class Hud(
     private val skin: Skin,
     private val state: TycoonState,
-    private val onBuy: (Upgrade) -> Unit,
+    private val settings: Settings,
+    onBuy: (Upgrade) -> Unit,
+    onMenu: () -> Unit,
 ) {
 
     val stage = Stage(ScreenViewport())
@@ -34,15 +35,15 @@ class Hud(
 
     private val stats = Label("", skin, "title")
     private val hint = Label(
-        "WASD / стик — движение, мышь / свайп — камера, Tab — магазин",
+        "WASD / стик — движение, мышь / свайп — камера, Tab — магазин, Esc — меню",
         skin, "hint",
     )
 
     private val joystick = TouchJoystick(skin.getDrawable("stick-base"), skin.getDrawable("stick-knob"))
     private val crosshair = Image(skin.getDrawable("crosshair"))
 
-    private val shop = Table()
-    private val rows = EnumMap<Upgrade, TextButton>(Upgrade::class.java)
+    private val shop = ShopPanel(skin, state, onBuy)
+    private val shopOverlay = Table()
 
     var shopVisible = false
         private set
@@ -61,47 +62,37 @@ class Hud(
         aim.touchable = Touchable.disabled
         aim.add(crosshair).size(28f)
 
-        shop.setFillParent(true)
-        shop.top().right().pad(12f)
-        shop.touchable = Touchable.childrenOnly
-        shop.isVisible = false
+        shopOverlay.setFillParent(true)
+        shopOverlay.top().right().pad(12f)
+        shopOverlay.touchable = Touchable.childrenOnly
+        shopOverlay.isVisible = false
 
-        buildShop()
+        val panel = Table()
+        panel.defaults().pad(4f)
+        panel.add(shop).row()
+        val close = TextButton("Закрыть", skin)
+        close.onClick { toggleShop() }
+        panel.add(close).padTop(6f)
+        shopOverlay.add(panel)
+
+        val menuButton = TextButton("Меню", skin)
+        menuButton.onClick { onMenu() }
+        val topRight = Table()
+        topRight.setFillParent(true)
+        topRight.top().right().pad(12f)
+        topRight.touchable = Touchable.childrenOnly
+        topRight.add(menuButton).width(120f)
 
         stage.addActor(root)
         stage.addActor(aim)
         stage.addActor(joystick)
-        stage.addActor(shop)
-    }
-
-    private fun buildShop() {
-        val panel = Table()
-        panel.background = skin.newDrawable("white", Color(0f, 0f, 0f, 0.55f))
-        panel.defaults().pad(4f)
-        panel.add(Label("Магазин улучшений", skin, "title")).colspan(2).padBottom(8f).row()
-
-        for (upgrade in Upgrade.entries) {
-            val button = TextButton("", skin, "shop")
-            button.addListener { _ -> onBuy(upgrade); true }
-
-            val label = Label(upgrade.description, skin, "hint")
-            label.wrap = true
-
-            panel.add(button).width(320f).left()
-            panel.add(label).width(320f).left().row()
-            rows[upgrade] = button
-        }
-
-        val toggle = TextButton("Закрыть", skin)
-        toggle.addListener { _ -> toggleShop(); true }
-        panel.add(toggle).colspan(2).padTop(10f).row()
-
-        shop.add(panel)
+        stage.addActor(topRight)
+        stage.addActor(shopOverlay)
     }
 
     fun toggleShop() {
         shopVisible = !shopVisible
-        shop.isVisible = shopVisible
+        shopOverlay.isVisible = shopVisible
     }
 
     fun resize(width: Int, height: Int) {
@@ -118,11 +109,9 @@ class Hud(
 
     private fun refresh() {
         stats.setText("${state.coins.toLong()} монет   (+${state.incomePerSecond.toInt()}/с)")
-        for (upgrade in Upgrade.entries) {
-            val level = state.levelOf(upgrade)
-            val cost = state.costOf(upgrade).toLong()
-            rows.getValue(upgrade).setText("${upgrade.title}  ур.$level  —  $cost")
-        }
+        joystick.isVisible = settings.showJoystick
+        crosshair.isVisible = settings.showCrosshair
+        if (shopVisible) shop.refresh()
     }
 
     fun dispose() {

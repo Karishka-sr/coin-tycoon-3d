@@ -7,6 +7,11 @@ world helpers in Java. No external assets except the DejaVu fonts in `assets/`.
 
 Modules: `core` (shared Kotlin+Java), `lwjgl3` (desktop), `android` (APK).
 
+Screens live in `core/.../screen/`: a main menu (play / options / shop / quit),
+the options screen and the shop are `MenuScreen` subclasses; the gameplay screen
+is `GameScreen`. `TycoonGame` owns the shared `Skin`, `Settings` and
+`TycoonState` and swaps screens, disposing the outgoing one (never the skin).
+
 ## Build
 
 JDK 17+ and Android SDK (platform 34, build-tools 34.0.0). Set `sdk.dir` in
@@ -44,3 +49,13 @@ audio devices are benign.
 - `Skin.add(name, obj)` keys entries by the object's concrete class, so a
   `TextureRegionDrawable` is invisible to `getDrawable`. Register drawables with
   the explicit `Drawable.class` argument.
+- `Slider` and `ScrollPane` look their style up under `default-horizontal` /
+  `default-vertical`, not `default`, so `Skin.get("default", SliderStyle)` fails
+  at runtime.
+- Inside `Table().apply { ... }` a bare `stage` resolves to `Actor.getStage()`,
+  which is null until the actor is added to a stage — not the screen's `stage`.
+  Build the table in a function instead.
+- Change screens from button callbacks with `TycoonGame.swapLater`: listeners run
+  inside the stage's `act`, so swapping directly would dispose the tree mid-walk.
+- `ClickListener` is an abstract class, so it cannot be a SAM lambda; use the
+  `onClick { }` extension in `ui/Clicks.kt`.

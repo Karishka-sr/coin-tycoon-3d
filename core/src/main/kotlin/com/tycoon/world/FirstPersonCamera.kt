@@ -18,13 +18,15 @@ class FirstPersonCamera(private val camera: PerspectiveCamera) {
         private set
     var eyeHeight = 1.7f
     var sensitivity = 0.18f
+    var invertY = false
 
     private val direction = Vector3()
 
     /** Applies a drag of [dx] / [dy] screen pixels. */
     fun rotate(dx: Float, dy: Float) {
         yaw = wrap(yaw - dx * sensitivity)
-        pitch = MathUtils.clamp(pitch - dy * sensitivity, -PITCH_LIMIT, PITCH_LIMIT)
+        val vertical = if (invertY) dy else -dy
+        pitch = MathUtils.clamp(pitch + vertical * sensitivity, -PITCH_LIMIT, PITCH_LIMIT)
     }
 
     /** Turns the camera by [degrees] without changing the pitch. */
