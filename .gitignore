@@ -24,3 +24,6 @@ coin-tycoon-save.json
 coin-tycoon-settings.json
 assets/coin-tycoon-save.json
 assets/coin-tycoon-settings.json
+
+# Generated sound effects (synthesised at runtime)
+sfx/

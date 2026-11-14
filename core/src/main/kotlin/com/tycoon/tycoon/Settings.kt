@@ -17,11 +17,20 @@ class Settings {
 
     var showJoystick: Boolean = true
 
+    var sfxEnabled: Boolean = true
+
+    var masterVolume: Float = 1f
+        set(value) {
+            field = value.coerceIn(MIN_VOLUME, MAX_VOLUME)
+        }
+
     fun snapshot(): SettingsData = SettingsData().also { data ->
         data.lookSensitivity = lookSensitivity
         data.invertLookY = invertLookY
         data.showCrosshair = showCrosshair
         data.showJoystick = showJoystick
+        data.sfxEnabled = sfxEnabled
+        data.masterVolume = masterVolume
     }
 
     fun restore(data: SettingsData) {
@@ -29,10 +38,14 @@ class Settings {
         invertLookY = data.invertLookY
         showCrosshair = data.showCrosshair
         showJoystick = data.showJoystick
+        sfxEnabled = data.sfxEnabled
+        masterVolume = data.masterVolume
     }
 
     companion object {
         const val MIN_SENSITIVITY = 0.25f
         const val MAX_SENSITIVITY = 3f
+        const val MIN_VOLUME = 0f
+        const val MAX_VOLUME = 1f
     }
 }

@@ -6,4 +6,6 @@ class SettingsData {
     var invertLookY: Boolean = false
     var showCrosshair: Boolean = true
     var showJoystick: Boolean = true
+    var sfxEnabled: Boolean = true
+    var masterVolume: Float = 1f
 }

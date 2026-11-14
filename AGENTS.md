@@ -3,7 +3,8 @@
 ## Project
 
 Coin Tycoon 3D — LibGDX game. Gameplay/UI in Kotlin, procedural 3D graphics and
-world helpers in Java. No external assets except the DejaVu fonts in `assets/`.
+world helpers in Java. No external assets except the DejaVu fonts in `assets/`
+and the sound effects, which are synthesised in code (see `com.tycoon.audio`).
 
 Modules: `core` (shared Kotlin+Java), `lwjgl3` (desktop), `android` (APK).
 
@@ -59,3 +60,9 @@ audio devices are benign.
   inside the stage's `act`, so swapping directly would dispose the tree mid-walk.
 - `ClickListener` is an abstract class, so it cannot be a SAM lambda; use the
   `onClick { }` extension in `ui/Clicks.kt`.
+- Audio is procedural: `SoundSynth` (Java, no Gdx) renders WAV bytes and
+  `SoundBank` writes them to `Gdx.files.local("sfx/...")` before loading. The
+  Android backend's `SoundPool.load` needs a real file path, so the bytes cannot
+  be played straight from memory; `sfx/` is generated at runtime and gitignored.
+- `SoundBank` must be constructed after `Gdx.app` exists (in `create()`), not in
+  a field initialiser, because it touches `Gdx.files` and `Gdx.audio`.

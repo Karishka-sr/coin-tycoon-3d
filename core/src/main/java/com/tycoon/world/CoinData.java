@@ -15,6 +15,9 @@ public class CoinData {
     public float spin = 0f;
     public float bob = 0f;
 
+    /** True for the rare, high-value coins; drives the richer pickup sound. */
+    public boolean big = false;
+
     public void respawn(float x, float z, double value, float spin, float bob) {
         position.set(x, CoinField.REST_HEIGHT, z);
         this.value = value;

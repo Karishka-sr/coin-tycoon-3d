@@ -4,6 +4,7 @@ import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.tycoon.audio.SoundBank
 import com.tycoon.screen.GameScreen
 import com.tycoon.screen.MainMenuScreen
 import com.tycoon.screen.SettingsScreen
@@ -34,10 +35,15 @@ class TycoonGame : Game() {
     lateinit var state: TycoonState
         private set
 
+    /** Synthesised sound effects, shared by every screen. */
+    lateinit var sound: SoundBank
+        private set
+
     override fun create() {
         skin = UiSkin.create()
         settings = SettingsManager.load()
         state = TycoonState().apply { SaveManager.load()?.let(::restore) }
+        sound = SoundBank(settings)
         swap(MainMenuScreen(this))
     }
 
@@ -70,6 +76,7 @@ class TycoonGame : Game() {
 
     override fun dispose() {
         super.dispose()
+        sound.dispose()
         skin.dispose()
     }
 }

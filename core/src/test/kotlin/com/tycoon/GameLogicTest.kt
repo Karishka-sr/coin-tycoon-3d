@@ -249,6 +249,8 @@ class SettingsTest {
             invertLookY = true
             showCrosshair = false
             showJoystick = false
+            sfxEnabled = false
+            masterVolume = 0.4f
         }
 
         val restored = Settings().apply { restore(original.snapshot()) }
@@ -257,6 +259,8 @@ class SettingsTest {
         assertTrue(restored.invertLookY)
         assertFalse(restored.showCrosshair)
         assertFalse(restored.showJoystick)
+        assertFalse(restored.sfxEnabled)
+        assertEquals(0.4f, restored.masterVolume, 1e-6f)
     }
 
     @Test
@@ -266,5 +270,82 @@ class SettingsTest {
         assertFalse(settings.invertLookY)
         assertTrue(settings.showCrosshair)
         assertTrue(settings.showJoystick)
+        assertTrue(settings.sfxEnabled)
+        assertEquals(1f, settings.masterVolume, 1e-6f)
+    }
+
+    @Test
+    fun `master volume is clamped to the allowed range`() {
+        val settings = Settings()
+        settings.masterVolume = 5f
+        assertEquals(Settings.MAX_VOLUME, settings.masterVolume, 1e-6f)
+        settings.masterVolume = -2f
+        assertEquals(Settings.MIN_VOLUME, settings.masterVolume, 1e-6f)
+    }
+}
+
+/** The procedural audio synthesis; pure arithmetic on byte arrays. */
+class SoundSynthTest {
+
+    @Test
+    fun `every effect renders a valid mono 16-bit wav`() {
+        for (id in com.tycoon.audio.SfxId.entries) {
+            val wav = com.tycoon.audio.SoundSynth.wav(id)
+
+            assertEquals("RIFF", ascii(wav, 0, 4), "заголовок RIFF для $id")
+            assertEquals("WAVE", ascii(wav, 8, 4), "метка WAVE для $id")
+            assertEquals("data", ascii(wav, 36, 4), "чанк data для $id")
+            assertEquals(1, leShort(wav, 22), "моно для $id")
+            assertEquals(16, leShort(wav, 34), "16 бит для $id")
+            assertEquals(com.tycoon.audio.SoundSynth.SAMPLE_RATE, leInt(wav, 24), "частота для $id")
+            assertEquals(wav.size - 44, leInt(wav, 40), "размер данных для $id")
+        }
+    }
+
+    @Test
+    fun `rendered samples stay inside the 16-bit range`() {
+        for (id in com.tycoon.audio.SfxId.entries) {
+            val wav = com.tycoon.audio.SoundSynth.wav(id)
+            assertTrue(wav.size > 44, "непустой звук для $id")
+            for (offset in 44 until wav.size step 2) {
+                val sample = pcmSample(wav, offset)
+                assertTrue(sample in Short.MIN_VALUE..Short.MAX_VALUE, "сэмпл в диапазоне для $id")
+            }
+        }
+    }
+
+    @Test
+    fun `the waveform actually carries signal`() {
+        val wav = com.tycoon.audio.SoundSynth.wav(com.tycoon.audio.SfxId.COIN_PICKUP)
+        var peak = 0
+        for (offset in 44 until wav.size step 2) {
+            peak = maxOf(peak, kotlin.math.abs(pcmSample(wav, offset).toInt()))
+        }
+        assertTrue(peak > 1000, "пик слышимой амплитуды, получено $peak")
+    }
+
+    @Test
+    fun `bigger recipes render longer effects`() {
+        val click = com.tycoon.audio.SoundSynth.wav(com.tycoon.audio.SfxId.UI_CLICK).size
+        val purchase = com.tycoon.audio.SoundSynth.wav(com.tycoon.audio.SfxId.PURCHASE).size
+        assertTrue(purchase > click, "покупка длиннее клика")
+    }
+
+    private fun ascii(bytes: ByteArray, offset: Int, length: Int): String =
+        String(bytes, offset, length, Charsets.US_ASCII)
+
+    private fun leInt(bytes: ByteArray, offset: Int): Int =
+        (bytes[offset].toInt() and 0xFF) or
+            ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
+            ((bytes[offset + 2].toInt() and 0xFF) shl 16) or
+            ((bytes[offset + 3].toInt() and 0xFF) shl 24)
+
+    private fun leShort(bytes: ByteArray, offset: Int): Int =
+        (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
+
+    /** Reads a little-endian sample as a signed 16-bit value. */
+    private fun pcmSample(bytes: ByteArray, offset: Int): Int {
+        val raw = leShort(bytes, offset)
+        return if (raw >= 0x8000) raw - 0x10000 else raw
     }
 }

@@ -22,7 +22,7 @@ class MainMenuScreen(game: TycoonGame) : MenuScreen(game) {
     }
 
     private fun button(text: String, action: () -> Unit): TextButton =
-        TextButton(text, skin).apply { onClick(action) }
+        TextButton(text, skin).apply { onClick(game.sound, action = action) }
 
     private fun progressLine(): String {
         val state = game.state

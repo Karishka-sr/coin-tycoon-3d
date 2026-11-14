@@ -23,9 +23,13 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
     private val sensitivityValue = Label("", skin, "hint")
     private val sensitivitySlider = Slider(Settings.MIN_SENSITIVITY, Settings.MAX_SENSITIVITY, 0.05f, false, skin)
 
+    private val volumeValue = Label("", skin, "hint")
+    private val volumeSlider = Slider(Settings.MIN_VOLUME, Settings.MAX_VOLUME, 0.05f, false, skin)
+
     private val invertCheck = CheckBox("Инвертировать вертикаль", skin)
     private val crosshairCheck = CheckBox("Показывать прицел", skin)
     private val joystickCheck = CheckBox("Показывать джойстик", skin)
+    private val soundCheck = CheckBox("Звук", skin)
 
     init {
         val table = contentTable()
@@ -50,8 +54,23 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
         table.add(bind(crosshairCheck, settings.showCrosshair) { settings.showCrosshair = it }).colspan(2).left().row()
         table.add(bind(joystickCheck, settings.showJoystick) { settings.showJoystick = it }).colspan(2).left().row()
 
+        volumeSlider.value = settings.masterVolume
+        volumeSlider.addListener(object : ChangeListener() {
+            override fun changed(event: ChangeEvent?, actor: Actor?) {
+                settings.masterVolume = volumeSlider.value
+                refreshVolume()
+                game.saveSettings()
+            }
+        })
+        table.add(Label("Громкость", skin)).left().padTop(16f)
+        table.add(volumeSlider).width(300f).left().row()
+        table.add().left()
+        table.add(volumeValue).left().row()
+
+        table.add(bind(soundCheck, settings.sfxEnabled) { settings.sfxEnabled = it }).colspan(2).left().row()
+
         val reset = TextButton("Вернуть настройки по умолчанию", skin)
-        reset.onClick {
+        reset.onClick(game.sound) {
             settings.restore(Settings().snapshot())
             game.saveSettings()
             syncControls()
@@ -59,7 +78,7 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
         table.add(reset).colspan(2).width(360f).padTop(12f).row()
 
         val back = TextButton("Назад", skin)
-        back.onClick { game.swapLater { game.showMainMenu() } }
+        back.onClick(game.sound) { game.swapLater { game.showMainMenu() } }
         table.add(back).colspan(2).width(360f).height(52f).padTop(4f).row()
 
         syncControls()
@@ -82,10 +101,17 @@ class SettingsScreen(game: TycoonGame) : MenuScreen(game) {
         invertCheck.isChecked = settings.invertLookY
         crosshairCheck.isChecked = settings.showCrosshair
         joystickCheck.isChecked = settings.showJoystick
+        volumeSlider.value = settings.masterVolume
+        soundCheck.isChecked = settings.sfxEnabled
         refreshSensitivity()
+        refreshVolume()
     }
 
     private fun refreshSensitivity() {
         sensitivityValue.setText("×${(settings.lookSensitivity * 100).roundToInt() / 100f}")
+    }
+
+    private fun refreshVolume() {
+        volumeValue.setText("${(settings.masterVolume * 100).roundToInt()}%")
     }
 }

@@ -8,6 +8,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.tycoon.audio.SfxId
+import com.tycoon.audio.SoundBank
 import com.tycoon.tycoon.Settings
 import com.tycoon.tycoon.TycoonState
 import com.tycoon.tycoon.Upgrade
@@ -24,6 +26,7 @@ class Hud(
     private val skin: Skin,
     private val state: TycoonState,
     private val settings: Settings,
+    private val sound: SoundBank,
     onBuy: (Upgrade) -> Unit,
     onMenu: () -> Unit,
 ) {
@@ -71,12 +74,12 @@ class Hud(
         panel.defaults().pad(4f)
         panel.add(shop).row()
         val close = TextButton("Закрыть", skin)
-        close.onClick { toggleShop() }
+        close.onClick(sound) { toggleShop() }
         panel.add(close).padTop(6f)
         shopOverlay.add(panel)
 
         val menuButton = TextButton("Меню", skin)
-        menuButton.onClick { onMenu() }
+        menuButton.onClick(sound) { onMenu() }
         val topRight = Table()
         topRight.setFillParent(true)
         topRight.top().right().pad(12f)

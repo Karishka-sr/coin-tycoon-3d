@@ -3,6 +3,7 @@ package com.tycoon.screen
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.tycoon.audio.SfxId
 import com.tycoon.ui.onClick
 import com.tycoon.TycoonGame
 import com.tycoon.tycoon.Upgrade
@@ -26,14 +27,15 @@ class ShopScreen(game: TycoonGame) : MenuScreen(game) {
         table.add(panel).row()
 
         val back = TextButton("Назад", skin)
-        back.onClick { game.swapLater { game.showMainMenu() } }
+        back.onClick(game.sound) { game.swapLater { game.showMainMenu() } }
         table.add(back).width(360f).height(52f).padTop(10f).row()
 
         refresh()
     }
 
     private fun buy(upgrade: Upgrade) {
-        game.state.buy(upgrade)
+        val bought = game.state.buy(upgrade)
+        game.sound.play(if (bought) SfxId.PURCHASE else SfxId.DENIED)
         game.saveProgress()
         refresh()
     }

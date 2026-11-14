@@ -36,9 +36,15 @@ public class CoinField {
     private double baseValue = 1.0;
     private double bigCoinChance = 0.0;
     private float magnetSpeed = 10f;
+    private boolean bigCoinCollected = false;
 
     public Array<CoinData> coins() {
         return coins;
+    }
+
+    /** Whether the most recent {@link #update} collected a big coin. */
+    public boolean bigCoinCollected() {
+        return bigCoinCollected;
     }
 
     public int capacity() {
@@ -71,6 +77,7 @@ public class CoinField {
      */
     public double update(float delta, Vector3 playerPosition, float magnetRadius) {
         double collected = 0.0;
+        bigCoinCollected = false;
         float magnetSq = magnetRadius * magnetRadius;
         float pickupSq = PICKUP_RADIUS * PICKUP_RADIUS;
 
@@ -86,6 +93,9 @@ public class CoinField {
 
             if (distanceSq < pickupSq) {
                 collected += coin.value;
+                if (coin.big) {
+                    bigCoinCollected = true;
+                }
                 coins.removeIndex(i);
                 continue;
             }
@@ -126,11 +136,13 @@ public class CoinField {
         float limit = Arena.HALF - 3f;
         float x = MathUtils.lerp(-limit, limit, rng.nextFloat());
         float z = MathUtils.lerp(-limit, limit, rng.nextFloat());
+        boolean big = rng.nextDouble() < bigCoinChance;
         double value = baseValue * MathUtils.lerp(0.8f, 1.4f, rng.nextFloat());
-        if (rng.nextDouble() < bigCoinChance) {
+        if (big) {
             value *= BIG_COIN_MULTIPLIER;
         }
         coins.add(new CoinData());
         coins.peek().respawn(x, z, value, rng.nextFloat() * 360f, rng.nextFloat() * MathUtils.PI2);
+        coins.peek().big = big;
     }
 }

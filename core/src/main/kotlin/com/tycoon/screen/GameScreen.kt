@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.ScreenUtils
 import com.tycoon.TycoonGame
+import com.tycoon.audio.SfxId
 import com.tycoon.gfx.CoinRenderer
 import com.tycoon.gfx.WorldRenderer
 import com.tycoon.tycoon.Upgrade
@@ -44,7 +45,7 @@ class GameScreen(private val game: TycoonGame) : ScreenAdapter() {
     private val input = InputController()
     private val field = CoinField()
 
-    private val hud = Hud(game.skin, state, game.settings, { buy(it) }, { openMenu() })
+    private val hud = Hud(game.skin, state, game.settings, game.sound, { buy(it) }, { openMenu() })
 
     private val moveInput = Vector2()
     private val worldMove = Vector2()
@@ -91,7 +92,9 @@ class GameScreen(private val game: TycoonGame) : ScreenAdapter() {
     }
 
     private fun buy(upgrade: Upgrade) {
-        if (state.buy(upgrade)) applyUpgrades()
+        val bought = state.buy(upgrade)
+        game.sound.play(if (bought) SfxId.PURCHASE else SfxId.DENIED)
+        if (bought) applyUpgrades()
     }
 
     private fun applyUpgrades() {
@@ -113,6 +116,7 @@ class GameScreen(private val game: TycoonGame) : ScreenAdapter() {
 
         val collected = field.update(delta, player.position, state.magnetRadius)
         if (collected > 0.0) {
+            game.sound.play(if (field.bigCoinCollected()) SfxId.BIG_COIN else SfxId.COIN_PICKUP)
             state.onCollect(collected * state.coinValueMultiplier)
         }
         state.update(delta)
