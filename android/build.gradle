@@ -87,3 +87,13 @@ afterEvaluate {
         dependsOn 'copyAndroidNatives'
     }
 }
+
+/** Copies the debug APK to a stable name so the release link never changes. */
+tasks.register('stageApk', Copy) {
+    dependsOn 'assembleDebug'
+    from(layout.buildDirectory.dir('outputs/apk/debug')) {
+        include '*-debug.apk'
+        rename { 'CoinTycoon3D-debug.apk' }
+    }
+    into(layout.buildDirectory.dir('dist'))
+}

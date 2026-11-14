@@ -132,3 +132,80 @@ class CoinFieldTest {
         assertTrue(player.position.z <= com.tycoon.world.Arena.HALF)
     }
 }
+
+/** Camera-relative movement maths; pure functions, no GL context required. */
+class InputMathTest {
+
+    private val out = com.badlogic.gdx.math.Vector2()
+
+    @Test
+    fun `forward at yaw zero moves towards negative Z`() {
+        com.tycoon.world.InputMath.worldMove(0f, 1f, 0f, out)
+        assertEquals(0f, out.x, 1e-5f)
+        assertEquals(-1f, out.y, 1e-5f)
+    }
+
+    @Test
+    fun `strafe right at yaw zero moves towards positive X`() {
+        com.tycoon.world.InputMath.worldMove(1f, 0f, 0f, out)
+        assertEquals(1f, out.x, 1e-5f)
+        assertEquals(0f, out.y, 1e-5f)
+    }
+
+    @Test
+    fun `forward follows the yaw angle`() {
+        // Yaw 90 looks along -X.
+        com.tycoon.world.InputMath.worldMove(0f, 1f, 90f, out)
+        assertEquals(-1f, out.x, 1e-5f)
+        assertEquals(0f, out.y, 1e-5f)
+    }
+
+    @Test
+    fun `diagonal input is normalised so it is not faster`() {
+        com.tycoon.world.InputMath.worldMove(1f, 1f, 0f, out)
+        assertEquals(1f, out.len(), 1e-5f)
+    }
+
+    @Test
+    fun `partial stick input keeps its magnitude`() {
+        com.tycoon.world.InputMath.worldMove(0f, 0.5f, 0f, out)
+        assertEquals(0.5f, out.len(), 1e-5f)
+    }
+}
+
+/** First-person camera angles; only arithmetic, so it runs headlessly. */
+class FirstPersonCameraTest {
+
+    private val camera = com.badlogic.gdx.graphics.PerspectiveCamera(67f, 800f, 480f)
+    private val firstPerson = com.tycoon.world.FirstPersonCamera(camera)
+
+    companion object {
+        init {
+            // PerspectiveCamera builds its frustum through JNI; load the natives once.
+            com.badlogic.gdx.utils.GdxNativesLoader.load()
+        }
+    }
+
+    @Test
+    fun `yaw turns and wraps around`() {
+        firstPerson.rotate(-100f, 0f)
+        assertTrue(firstPerson.yaw in 0f..360f)
+    }
+
+    @Test
+    fun `pitch is clamped to the limits`() {
+        firstPerson.rotate(0f, -10_000f)
+        assertEquals(com.tycoon.world.FirstPersonCamera.PITCH_LIMIT, firstPerson.pitch, 1e-4f)
+        firstPerson.rotate(0f, 10_000f)
+        assertEquals(-com.tycoon.world.FirstPersonCamera.PITCH_LIMIT, firstPerson.pitch, 1e-4f)
+    }
+
+    @Test
+    fun `camera sits at eye height above the player`() {
+        val position = Vector3(3f, 0f, -4f)
+        firstPerson.update(position, 0f)
+        assertEquals(3f, camera.position.x, 1e-5f)
+        assertEquals(firstPerson.eyeHeight, camera.position.y, 1e-5f)
+        assertEquals(-4f, camera.position.z, 1e-5f)
+    }
+}

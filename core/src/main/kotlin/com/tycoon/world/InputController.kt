@@ -5,37 +5,40 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.math.Vector2
 
 /**
- * Maps keyboard, mouse and touch input to a normalised movement vector.
+ * Merges keyboard movement with the on-screen stick into a single normalised
+ * vector, and reports keyboard camera turning.
  *
- * <p>The same vector drives the player on desktop (WASD / arrows / right-mouse
- * drag) and on touch devices (drag anywhere on screen).
+ * <p>The returned movement has x = strafe right and y = forward, both relative
+ * to where the camera looks; [InputMath] turns that into a world direction.
  */
 class InputController {
 
     private val move = Vector2()
-    private var touchOrigin: Vector2? = null
 
-    fun movement(): Vector2 {
+    fun movement(stick: Vector2): Vector2 {
         move.setZero()
 
-        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) move.y += 1f
-        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) move.y -= 1f
-        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) move.x -= 1f
-        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) move.x += 1f
+        if (key(Input.Keys.W) || key(Input.Keys.UP)) move.y += 1f
+        if (key(Input.Keys.S) || key(Input.Keys.DOWN)) move.y -= 1f
+        if (key(Input.Keys.A)) move.x -= 1f
+        if (key(Input.Keys.D)) move.x += 1f
 
-        if (move.isZero && Gdx.input.isTouched) {
-            val x = Gdx.input.x
-            val y = Gdx.input.y
-            val origin = touchOrigin
-            if (origin == null) {
-                touchOrigin = Vector2(x.toFloat(), y.toFloat())
-            } else {
-                move.set(x - origin.x, -(y - origin.y)).scl(0.06f)
-            }
-        } else if (!Gdx.input.isTouched) {
-            touchOrigin = null
-        }
-
+        move.add(stick)
+        if (move.len2() > 1f) move.nor()
         return move
+    }
+
+    /** Degrees to turn the camera this frame from the arrow / QE keys. */
+    fun turn(delta: Float): Float {
+        var direction = 0f
+        if (key(Input.Keys.LEFT) || key(Input.Keys.Q)) direction += 1f
+        if (key(Input.Keys.RIGHT) || key(Input.Keys.E)) direction -= 1f
+        return direction * TURN_SPEED * delta
+    }
+
+    private fun key(code: Int): Boolean = Gdx.input.isKeyPressed(code)
+
+    companion object {
+        const val TURN_SPEED = 140f
     }
 }

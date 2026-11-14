@@ -1,7 +1,9 @@
 package com.tycoon.ui
 
-import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -12,9 +14,12 @@ import com.tycoon.tycoon.Upgrade
 import java.util.EnumMap
 
 /**
- * The on-screen interface: a live stat readout in the top-left corner and the
- * upgrade shop on the right. Labels are refreshed each frame so the numbers
- * stay current.
+ * The on-screen interface: a live stat readout, the movement stick, a centre
+ * crosshair and the upgrade shop.
+ *
+ * The stick owns the left half of the screen and the shop owns the top-right;
+ * every other overlay is [Touchable.disabled] so drags fall through to the
+ * game's look input and the camera can be turned from anywhere else.
  */
 class Hud(
     private val skin: Skin,
@@ -24,11 +29,17 @@ class Hud(
 
     val stage = Stage(ScreenViewport())
 
+    /** Normalised stick output; x strafes right, y moves forward. */
+    val stickOutput get() = joystick.output
+
     private val stats = Label("", skin, "title")
     private val hint = Label(
-        "WASD / стрелки — движение, ПКМ — камера, Tab — магазин",
+        "WASD / стик — движение, мышь / свайп — камера, Tab — магазин",
         skin, "hint",
     )
+
+    private val joystick = TouchJoystick(skin.getDrawable("stick-base"), skin.getDrawable("stick-knob"))
+    private val crosshair = Image(skin.getDrawable("crosshair"))
 
     private val shop = Table()
     private val rows = EnumMap<Upgrade, TextButton>(Upgrade::class.java)
@@ -40,16 +51,26 @@ class Hud(
         val root = Table()
         root.setFillParent(true)
         root.top().left().pad(12f)
+        root.touchable = Touchable.disabled
         root.add(stats).left().row()
         root.add(hint).left().padTop(4f)
 
+        val aim = Table()
+        aim.setFillParent(true)
+        aim.center()
+        aim.touchable = Touchable.disabled
+        aim.add(crosshair).size(28f)
+
         shop.setFillParent(true)
         shop.top().right().pad(12f)
+        shop.touchable = Touchable.childrenOnly
         shop.isVisible = false
 
         buildShop()
 
         stage.addActor(root)
+        stage.addActor(aim)
+        stage.addActor(joystick)
         stage.addActor(shop)
     }
 
@@ -85,6 +106,8 @@ class Hud(
 
     fun resize(width: Int, height: Int) {
         stage.viewport.update(width, height, true)
+        // The stick gets the left half; the rest of the screen stays free for looking.
+        joystick.setBounds(0f, 0f, width * 0.5f, height.toFloat())
     }
 
     fun render(delta: Float) {

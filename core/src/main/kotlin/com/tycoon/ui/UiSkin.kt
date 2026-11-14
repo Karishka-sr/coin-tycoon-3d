@@ -38,6 +38,12 @@ object UiSkin {
 
         skin.add("white", whiteTexture())
 
+        // Registered against Drawable.class: Skin.add(name, obj) would key these
+        // by their concrete TextureRegionDrawable type, which getDrawable misses.
+        skin.add("stick-base", circleDrawable(220, Color(1f, 1f, 1f, 0.12f), Color(1f, 1f, 1f, 0.4f), 5), Drawable::class.java)
+        skin.add("stick-knob", circleDrawable(110, Color(1f, 0.85f, 0.3f, 0.85f), Color(1f, 1f, 1f, 0.65f), 4), Drawable::class.java)
+        skin.add("crosshair", crosshairDrawable(28), Drawable::class.java)
+
         skin.add("default", Label.LabelStyle(regular, Color.WHITE))
         skin.add("title", Label.LabelStyle(title, Color(1f, 0.85f, 0.3f, 1f)))
         skin.add("hint", Label.LabelStyle(small, Color(0.8f, 0.85f, 0.9f, 1f)))
@@ -91,4 +97,34 @@ object UiSkin {
 
     private fun rounded(color: Color): Drawable =
         TextureRegionDrawable(TextureRegion(whiteTexture())).tint(color)
+
+    /** An anti-aliased circle, optionally ringed, used for the on-screen stick. */
+    private fun circleDrawable(size: Int, fill: Color, ring: Color, ringWidth: Int): Drawable {
+        val pixmap = Pixmap(size, size, Pixmap.Format.RGBA8888)
+        pixmap.setColor(Color.CLEAR)
+        pixmap.fill()
+        val r = size / 2f
+        pixmap.setColor(ring)
+        pixmap.fillCircle(size / 2, size / 2, (r - 1).toInt())
+        pixmap.setColor(fill)
+        pixmap.fillCircle(size / 2, size / 2, (r - ringWidth - 1).toInt())
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        return TextureRegionDrawable(TextureRegion(texture))
+    }
+
+    /** A small plus-shaped aim marker for the centre of the screen. */
+    private fun crosshairDrawable(size: Int): Drawable {
+        val pixmap = Pixmap(size, size, Pixmap.Format.RGBA8888)
+        pixmap.setColor(Color.CLEAR)
+        pixmap.fill()
+        pixmap.setColor(1f, 1f, 1f, 0.85f)
+        val t = 2
+        val c = size / 2
+        pixmap.fillRectangle(0, c - t / 2, size, t)
+        pixmap.fillRectangle(c - t / 2, 0, t, size)
+        val texture = Texture(pixmap)
+        pixmap.dispose()
+        return TextureRegionDrawable(TextureRegion(texture))
+    }
 }

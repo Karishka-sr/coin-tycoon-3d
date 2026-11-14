@@ -9,30 +9,38 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.ScreenUtils
 import com.tycoon.gfx.CoinRenderer
-import com.tycoon.gfx.PlayerRenderer
 import com.tycoon.gfx.WorldRenderer
 import com.tycoon.tycoon.SaveManager
 import com.tycoon.tycoon.TycoonState
 import com.tycoon.tycoon.Upgrade
 import com.tycoon.ui.Hud
 import com.tycoon.ui.UiSkin
-import com.tycoon.world.ChaseCamera
 import com.tycoon.world.CoinField
+import com.tycoon.world.FirstPersonCamera
 import com.tycoon.world.InputController
+import com.tycoon.world.InputMath
+import com.tycoon.world.LookInput
 import com.tycoon.world.Player
 
-/** The single gameplay screen: 3D world, coin loop and the upgrade shop. */
+/**
+ * The single gameplay screen: a first-person view over the coin arena plus the
+ * upgrade shop.
+ *
+ * Movement comes from WASD or the on-screen stick and is resolved relative to
+ * where the camera looks; the camera itself turns with mouse drag, a swipe
+ * outside the stick, or the arrow / QE keys.
+ */
 class GameScreen : ScreenAdapter() {
 
     private val state = TycoonState().apply { SaveManager.load()?.let(::restore) }
-    private val camera = PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-    private val chaseCamera = ChaseCamera(camera)
+    private val camera = PerspectiveCamera(72f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
+    private val firstPerson = FirstPersonCamera(camera)
     private val modelBatch = ModelBatch()
 
     private val world = WorldRenderer()
-    private val playerRenderer = PlayerRenderer()
     private val coinRenderer = CoinRenderer()
 
     private val player = Player()
@@ -42,20 +50,23 @@ class GameScreen : ScreenAdapter() {
     private val skin = UiSkin.create()
     private val hud = Hud(skin, state) { buy(it) }
 
+    private val moveInput = Vector2()
+    private val worldMove = Vector2()
+    private val lookDirection = Vector3()
+
     private var timeSinceSave = 0f
 
     init {
-        camera.position.set(0f, 13f, 18f)
-        camera.lookAt(0f, 1f, 0f)
         camera.near = 0.1f
         camera.far = 400f
-        camera.update()
+        firstPerson.update(player.position, 0f)
 
         field.fill()
         applyUpgrades()
 
         val multiplexer = InputMultiplexer()
         multiplexer.addProcessor(hud.stage)
+        multiplexer.addProcessor(LookInput(firstPerson))
         multiplexer.addProcessor(object : InputAdapter() {
             override fun keyDown(keycode: Int): Boolean {
                 if (keycode == Input.Keys.TAB) {
@@ -64,6 +75,15 @@ class GameScreen : ScreenAdapter() {
                 }
                 if (keycode == Input.Keys.ESCAPE && hud.shopVisible) {
                     hud.toggleShop()
+                    return true
+                }
+                return false
+            }
+
+            override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
+                // Desktop right-button drag also turns the view.
+                if (Gdx.input.isButtonPressed(Input.Buttons.RIGHT)) {
+                    firstPerson.rotate(Gdx.input.deltaX.toFloat(), Gdx.input.deltaY.toFloat())
                     return true
                 }
                 return false
@@ -84,8 +104,11 @@ class GameScreen : ScreenAdapter() {
     }
 
     override fun render(delta: Float) {
-        val movement: Vector2 = input.movement()
-        player.update(delta, movement)
+        firstPerson.turn(input.turn(delta))
+
+        moveInput.set(input.movement(hud.stickOutput))
+        InputMath.worldMove(moveInput.x, moveInput.y, firstPerson.yaw, worldMove)
+        player.update(delta, worldMove)
 
         val collected = field.update(delta, player.position, state.magnetRadius)
         if (collected > 0.0) {
@@ -93,7 +116,7 @@ class GameScreen : ScreenAdapter() {
         }
         state.update(delta)
 
-        chaseCamera.update(delta, player.position, player.headingDegrees)
+        firstPerson.update(player.position, player.bobOffset)
 
         // clearDepth must be true: stale depth values would otherwise reject every fragment.
         ScreenUtils.clear(0.45f, 0.7f, 0.95f, 1f, true)
@@ -101,7 +124,6 @@ class GameScreen : ScreenAdapter() {
 
         modelBatch.begin(camera)
         world.render(modelBatch)
-        playerRenderer.render(modelBatch, world.environment, player)
         coinRenderer.render(modelBatch, world.environment, field)
         modelBatch.end()
 
@@ -129,7 +151,6 @@ class GameScreen : ScreenAdapter() {
         SaveManager.save(state)
         modelBatch.dispose()
         world.dispose()
-        playerRenderer.dispose()
         coinRenderer.dispose()
         hud.dispose()
         skin.dispose()
